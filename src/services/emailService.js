@@ -1,7 +1,7 @@
 import axios from "axios";
 // import { API_BASE_URL } from '../config'; // Adjust this import based on your project structure
 
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}`;
 
 // Get token from localStorage (you might have a utility function for this)
 const getAuthToken = () => localStorage.getItem("token");
@@ -77,8 +77,7 @@ export const checkEmailAccount = async () => {
   }
 };
 
-
-export const rewriteEmailWithAI= async({text, tone, length}) => {
+export const rewriteEmailWithAI = async ({ text, tone, length }) => {
   try {
     const response = await axios.post(
       `${API_BASE_URL}/api/ai/rewrite-email`,

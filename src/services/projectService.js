@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Updated API URL to match the new endpoint
-const API_URL = "http://localhost:5000/api/projects";
+const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/projects`;
 
 // Helper function to get auth headers
 const getAuthHeader = () => {
