@@ -1,8 +1,11 @@
 import { useDroppable } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import KanbanTask from "./KanbanTask";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import ColumnHeader from "./ColumnHeader";
+import KanbanTask from "./KanbanTask";
 
 function KanbanColumn({
   column,
@@ -14,7 +17,7 @@ function KanbanColumn({
   onEditColumn,
   onDeleteColumn,
 }) {
-  const { setNodeRef } = useDroppable({
+  const { setNodeRef, isOver } = useDroppable({
     id: column.id,
     data: {
       type: "column",
@@ -27,7 +30,8 @@ function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className="bg-gray-50 rounded-lg p-3 flex-shrink-0 min-w-[280px] max-w-[280px]"
+      className={`column-drop-target bg-gray-200 border-dashed border-2 border-gray-400 rounded-lg p-3 flex-shrink-0 min-w-[280px] max-w-[280px] transition-colors
+        ${isOver ? "is-over ring-1 ring-blue-300" : ""}`}
     >
       <ColumnHeader
         title={column.title}
@@ -35,7 +39,7 @@ function KanbanColumn({
         onEdit={(title) => onEditColumn(title)}
         onDelete={onDeleteColumn}
       />
-
+      <hr className="my-2 border-gray-400" />
       <div className="mt-2">
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
           {column.tasks.map((task) => (

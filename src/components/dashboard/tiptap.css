@@ -114,3 +114,47 @@
 html {
   touch-action: none;
 }
+
+/* Add these styles to your CSS */
+.drag-handle:hover {
+  background-color: #f3f4f6;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Add this class to improve the visibility of the dragged item */
+[data-dnd-dragging="true"] {
+  z-index: 50 !important;
+  cursor: grabbing !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Enhanced drag styles */
+[data-dnd-draggable="true"] {
+  position: relative;
+  z-index: 1;
+}
+
+/* This ensures drag overlay is visible above everything */
+div[role="presentation"].dnd-kit_draggable-overlay {
+  z-index: 9999 !important;
+}
+
+/* Ghost effect for the original location */
+.ghost-card {
+  opacity: 0.4;
+  background-color: #f9fafb;
+  border: 2px dashed #d1d5db;
+}
+
+/* Make columns highlight when dragged over */
+.column-drop-target {
+  transition: background-color 0.2s ease;
+}
+
+.column-drop-target.is-over {
+  background-color: #f0f9ff;
+  border-color: #bae6fd;
+}

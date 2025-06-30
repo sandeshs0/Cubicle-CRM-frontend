@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { MoreHorizontal, Plus, Edit2, Trash2, X, Check } from "lucide-react";
+import { Check, Edit2, MoreHorizontal, Trash2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const ColumnHeader = ({ title, onAddClick, onEdit, onDelete }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -87,7 +87,7 @@ const ColumnHeader = ({ title, onAddClick, onEdit, onDelete }) => {
         </div>
       ) : (
         <>
-          <h3 className="font-semibold text-md">{title}</h3>
+          <h3 className="font-semibold text-lg">{title}</h3>
           <div className="relative" ref={menuRef}>
             <button
               className="p-1 rounded-full hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity"

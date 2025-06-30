@@ -1,16 +1,19 @@
 import {
   closestCenter,
   DndContext,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   pointerWithin,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { format, isAfter } from "date-fns";
 import { ChevronLeft, Loader, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import KanbanColumn from "../components/kanban/KanbanColumn";
@@ -43,9 +46,14 @@ function KanbanPage() {
   const [newColumnTitle, setNewColumnTitle] = useState("");
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [activeId, setActiveId] = useState(null);
+  const [activeTask, setActiveTask] = useState(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // Minimum drag distance before activation (prevents accidental drags)
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -123,7 +131,12 @@ function KanbanPage() {
 
   const handleDragStart = (event) => {
     const { active } = event;
-    setActiveId(active.id);
+    const { id } = active;
+
+    if (active.data.current?.type === "task") {
+      const draggedTask = active.data.current.task;
+      setActiveTask(draggedTask);
+    }
   };
 
   const handleDragOver = (event) => {
@@ -150,6 +163,8 @@ function KanbanPage() {
   };
 
   const handleDragEnd = async (event) => {
+    setActiveTask(null);
+
     const { active, over } = event;
 
     if (!over) return;
@@ -293,6 +308,7 @@ function KanbanPage() {
 
           // Add to new column
           newColumns[updatedTask.columnId].tasks.push(updatedTask);
+          
         } else {
           // Update in the same column
           const taskIndex = newColumns[currentTask.columnId].tasks.findIndex(
@@ -450,10 +466,10 @@ function KanbanPage() {
 
       <DndContext
         sensors={sensors}
-        collisionDetection={collisionDetectionStrategy}
+        collisionDetection={closestCenter}
         onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
+        modifiers={[restrictToWindowEdges]} // Add modifiers for better visual feedback
       >
         <div className="flex overflow-x-auto pb-4 gap-6">
           {Object.values(columns).map((column) => (
@@ -473,6 +489,42 @@ function KanbanPage() {
             />
           ))}
         </div>
+
+        {createPortal(
+          <DragOverlay adjustScale zIndex={100}>
+            {activeTask ? (
+              <div className="bg-white rounded-md shadow-lg p-3 border border-blue-300 max-w-[280px] opacity-90">
+                <div className="text-sm font-medium text-gray-800 mb-2">
+                  {activeTask.title}
+                </div>
+
+                {activeTask.description && (
+                  <p className="text-xs text-gray-500 line-clamp-2 mb-2">
+                    {activeTask.description}
+                  </p>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  {activeTask.priority && (
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        activeTask.priority === "high"
+                          ? "bg-orange-100 text-orange-800"
+                          : activeTask.priority === "medium"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
+                    >
+                      {activeTask.priority.charAt(0).toUpperCase() +
+                        activeTask.priority.slice(1)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </DragOverlay>,
+          document.body
+        )}
       </DndContext>
 
       {taskModalOpen && (

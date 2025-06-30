@@ -4,6 +4,7 @@ import {
   CheckSquare,
   Clock,
   Edit,
+  GripVertical,
   MoreHorizontal,
   Trash2,
   User,
@@ -16,7 +17,7 @@ function KanbanTask({
   columnId,
   onDelete,
   formatDueDate,
-  isOverdue,
+  isOverdue = () => false,
   onEdit,
 }) {
   const [showMenu, setShowMenu] = useState(false);
@@ -38,10 +39,12 @@ function KanbanTask({
   });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 999 : 1,
+    // Only reduce opacity slightly so card remains somewhat visible in original position
+    opacity: isDragging ? 0.3 : 1,
+    // Don't hide the card entirely while dragging
+    visibility: isDragging ? "visible" : "visible",
   };
 
   useEffect(() => {
@@ -82,131 +85,146 @@ function KanbanTask({
 
   const checklistCount = getCompletedTasksCount();
 
-  // Handle edit click
-  const handleEditClick = () => {
-    onEdit(task);
+  // Handle opening the task modal on click
+  const handleCardClick = (e) => {
+    // Don't open task if clicking on menu or drag handle
+    if (
+      e.target.closest(".task-menu-container") ||
+      e.target.closest(".drag-handle")
+    ) {
+      return;
+    }
+    onEdit();
   };
 
   return (
     <div
       ref={setNodeRef}
-      style={{
-        ...style,
-        touchAction: "none", // Prevents scrolling while dragging on touch devices
-      }}
-      {...attributes}
-      {...listeners}
-      className={`bg-white rounded-md shadow-sm mb-2 p-3 cursor-grab touch-manipulation 
-        hover:shadow-md transition-shadow border border-gray-100 group
-        ${isDragging ? "dragging-task" : ""}`}
+      style={style}
+      className={`bg-white rounded-md shadow-sm mb-2 border border-gray-100 flex
+        hover:shadow-md transition-all ${
+          isDragging ? "shadow-md ring-2 ring-blue-300 opacity-30" : ""
+        }`}
     >
-      <div className="flex justify-between items-start">
-        <h3 className="text-sm font-medium text-gray-800 break-all pr-6">
-          {task.title}
-        </h3>
-        <div className="relative" ref={menuRef}>
-          <button
-            className="p-1 rounded-full hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowMenu(!showMenu);
-            }}
-          >
-            <MoreHorizontal size={14} />
-          </button>
-          {showMenu && (
-            <div className="absolute right-0 mt-1 w-36 bg-white rounded-md shadow-lg z-10 border border-gray-200">
-              <div className="py-1">
-                <button
-                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowMenu(false);
-                    onEdit();
-                  }}
-                >
-                  <Edit size={14} className="mr-2" />
-                  Edit Task
-                </button>
-                <button
-                  className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowMenu(false);
-                    onDelete();
-                  }}
-                >
-                  <Trash2 size={14} className="mr-2" />
-                  Delete
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+      {/* Drag handle area */}
+      <div
+        className="drag-handle w-8 flex items-center justify-center cursor-grab border-r border-gray-100 hover:bg-gray-50 rounded-l-md"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical size={16} className="text-gray-400" />
       </div>
 
-      {task.description && (
-        <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-          {task.description}
-        </p>
-      )}
-
-      {/* Task metadata */}
-      <div className="mt-3 flex flex-wrap gap-2">
-        {/* Priority tag */}
-        {task.priority && (
-          <span
-            className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(
-              task.priority
-            )}`}
-          >
-            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-          </span>
-        )}
-
-        {/* Due date */}
-        {task.dueDate && (
-          <span
-            className={`text-xs px-2 py-1 rounded-full flex items-center 
-              ${
-                isOverdue(task.dueDate)
-                  ? "bg-red-100 text-red-800"
-                  : "bg-gray-100 text-gray-700"
-              }`}
-          >
-            <Clock size={12} className="mr-1" />
-            {formatDueDate(task.dueDate)}
-          </span>
-        )}
-
-        {/* Checklist counter */}
-        {checklistCount && (
-          <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 flex items-center">
-            <CheckSquare size={12} className="mr-1" />
-            {checklistCount}
-          </span>
-        )}
-      </div>
-
-      {/* Assigned Users */}
-      {task.assignedTo && task.assignedTo.length > 0 && (
-        <div className="mt-3 flex -space-x-2 overflow-hidden">
-          {task.assignedTo.slice(0, 3).map((user, index) => (
-            <div
-              key={index}
-              className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 border border-white"
-              title={user.name || "Team member"}
+      {/* Card content - clickable to open modal */}
+      <div className="p-3 flex-1 cursor-pointer" onClick={handleCardClick}>
+        <div className="flex justify-between items-start">
+          <h3 className="text-sm font-medium text-gray-800 break-all pr-6">
+            {task.title}
+          </h3>
+          <div className="relative task-menu-container" ref={menuRef}>
+            <button
+              className="p-1 rounded-full hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenu(!showMenu);
+              }}
             >
-              <User size={12} className="text-gray-600" />
-            </div>
-          ))}
-          {task.assignedTo.length > 3 && (
-            <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 border border-white text-xs font-medium text-gray-600">
-              +{task.assignedTo.length - 3}
-            </div>
+              <MoreHorizontal size={14} />
+            </button>
+            {showMenu && (
+              <div className="absolute right-0 mt-1 w-36 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                <div className="py-1">
+                  <button
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMenu(false);
+                      onEdit();
+                    }}
+                  >
+                    <Edit size={14} className="mr-2" />
+                    Edit Task
+                  </button>
+                  <button
+                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMenu(false);
+                      onDelete();
+                    }}
+                  >
+                    <Trash2 size={14} className="mr-2" />
+                    Delete
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {task.description && (
+          <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+            {task.description}
+          </p>
+        )}
+
+        {/* Task metadata */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {/* Priority tag */}
+          {task.priority && (
+            <span
+              className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(
+                task.priority
+              )}`}
+            >
+              {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+            </span>
+          )}
+
+          {/* Due date */}
+          {task.dueDate && (
+            <span
+              className={`text-xs px-2 py-1 rounded-full flex items-center 
+                ${
+                  isOverdue(task.dueDate)
+                    ? "bg-red-100 text-red-800"
+                    : "bg-gray-100 text-gray-700"
+                }`}
+            >
+              <Clock size={12} className="mr-1" />
+              {formatDueDate(task.dueDate)}
+            </span>
+          )}
+
+          {/* Checklist counter */}
+          {checklistCount && (
+            <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 flex items-center">
+              <CheckSquare size={12} className="mr-1" />
+              {checklistCount}
+            </span>
           )}
         </div>
-      )}
+
+        {/* Assigned Users */}
+        {task.assignedTo && task.assignedTo.length > 0 && (
+          <div className="mt-3 flex -space-x-2 overflow-hidden">
+            {task.assignedTo.slice(0, 3).map((user, index) => (
+              <div
+                key={index}
+                className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 border border-white"
+                title={user.name || "Team member"}
+              >
+                <User size={12} className="text-gray-600" />
+              </div>
+            ))}
+            {task.assignedTo.length > 3 && (
+              <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 border border-white text-xs font-medium text-gray-600">
+                +{task.assignedTo.length - 3}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
