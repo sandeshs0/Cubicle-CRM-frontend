@@ -1,255 +1,292 @@
-import { useState, useEffect } from "react";
-import { X, Plus, Trash2, Upload, CheckSquare, Calendar, AlertTriangle } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
+import { Calendar, CheckSquare, Plus, Trash2, User, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
-function TaskModal({ isOpen, onClose, onSave, task = null, columns }) {
-  const isEditing = !!task;
+const TaskModal = ({
+  task = null,
+  columnId,
+  boardId,
+  onClose,
+  onSave,
+  columns = {}, // Add default empty object here
+  users = [],
+}) => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    dueDate: "",
-    columnId: "backlog",
+    dueDate: null,
     priority: "medium",
+    assignedTo: [],
+    columnId: columnId,
     checklist: [],
-    image: null
   });
-  const [newChecklistItem, setNewChecklistItem] = useState("");
+  const [newCheckItem, setNewCheckItem] = useState("");
 
-  // Set form data when editing an existing task
   useEffect(() => {
     if (task) {
       setFormData({
-        id: task.id,
         title: task.title || "",
         description: task.description || "",
-        dueDate: task.dueDate || "",
-        columnId: task.columnId || "backlog",
+        dueDate: task.dueDate ? new Date(task.dueDate) : null,
         priority: task.priority || "medium",
+        assignedTo: task.assignedTo || [],
+        columnId: task.columnId || columnId,
         checklist: task.checklist || [],
-        image: task.image || null
+      });
+    } else {
+      setFormData({
+        ...formData,
+        columnId: columnId,
       });
     }
-  }, [task]);
+  }, [task, columnId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+
+  const handleDueDateChange = (date) => {
+    setFormData({
+      ...formData,
+      dueDate: date,
+    });
   };
 
   const handleAddChecklistItem = () => {
-    if (!newChecklistItem.trim()) return;
-    
-    setFormData({
-      ...formData,
-      checklist: [
-        ...formData.checklist,
-        { id: uuidv4(), text: newChecklistItem, completed: false }
-      ]
-    });
-    setNewChecklistItem("");
-  };
-
-  const handleChecklistItemChange = (itemId, isCompleted) => {
-    setFormData({
-      ...formData,
-      checklist: formData.checklist.map(item => 
-        item.id === itemId ? { ...item, completed: isCompleted } : item
-      )
-    });
-  };
-
-  const handleChecklistItemDelete = (itemId) => {
-    setFormData({
-      ...formData,
-      checklist: formData.checklist.filter(item => item.id !== itemId)
-    });
-  };
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Image must be smaller than 2MB");
-      return;
+    if (newCheckItem.trim()) {
+      const newItem = {
+        id: Date.now().toString(),
+        text: newCheckItem.trim(),
+        completed: false,
+      };
+      setFormData({
+        ...formData,
+        checklist: [...formData.checklist, newItem],
+      });
+      setNewCheckItem("");
     }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData({ ...formData, image: reader.result });
-    };
-    reader.readAsDataURL(file);
   };
 
-  const handleRemoveImage = () => {
-    setFormData({ ...formData, image: null });
+  const toggleChecklistItem = (itemId) => {
+    setFormData({
+      ...formData,
+      checklist: formData.checklist.map((item) =>
+        item.id === itemId ? { ...item, completed: !item.completed } : item
+      ),
+    });
+  };
+
+  const removeChecklistItem = (itemId) => {
+    setFormData({
+      ...formData,
+      checklist: formData.checklist.filter((item) => item.id !== itemId),
+    });
+  };
+
+  const toggleAssignUser = (userId) => {
+    if (formData.assignedTo.includes(userId)) {
+      setFormData({
+        ...formData,
+        assignedTo: formData.assignedTo.filter((id) => id !== userId),
+      });
+    } else {
+      setFormData({
+        ...formData,
+        assignedTo: [...formData.assignedTo, userId],
+      });
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.title) {
-      alert("Title is required");
-      return;
-    }
-    onSave(formData);
-    onClose();
+    onSave({
+      ...formData,
+      boardId,
+    });
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-10 overflow-y-auto py-10">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl m-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg w-full max-w-2xl p-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">
-            {isEditing ? "Edit Task" : "Add New Task"}
-          </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <h2 className="text-xl font-semibold">
+            {task ? "Edit Task" : "Create Task"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
             <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                Task Title *
+          <div className="space-y-4">
+            <div>
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Title
               </label>
               <input
                 type="text"
-                id="title"
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#007991] focus:border-[#007991]"
-                placeholder="Enter task title"
+                className="w-full p-2 border border-gray-300 rounded"
+                placeholder="Task title"
                 required
               />
             </div>
 
-            <div className="md:col-span-2">
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+            <div>
+              <label className="block text-gray-700 text-sm font-medium mb-2">
                 Description
               </label>
               <textarea
-                id="description"
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#007991] focus:border-[#007991]"
-                placeholder="Enter task description"
+                className="w-full p-2 border border-gray-300 rounded"
+                placeholder="Add a more detailed description..."
                 rows="3"
-              ></textarea>
+              />
             </div>
 
-            <div>
-              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
-                Due Date
-              </label>
-              <div className="relative">
-                <Calendar size={16} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="date"
-                  id="dueDate"
-                  name="dueDate"
-                  value={formData.dueDate}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">
+                  Due Date
+                </label>
+                <div className="relative">
+                  <DatePicker
+                    selected={formData.dueDate}
+                    onChange={handleDueDateChange}
+                    dateFormat="MMM d, yyyy"
+                    className="w-full p-2 border border-gray-300 rounded"
+                    placeholderText="Select a date"
+                  />
+                  <Calendar
+                    size={16}
+                    className="absolute right-3 top-3 text-gray-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">
+                  Column
+                </label>
+                <select
+                  name="columnId"
+                  value={formData.columnId}
                   onChange={handleChange}
-                  className="w-full p-2 pl-8 border border-gray-300 rounded-md focus:ring-[#007991] focus:border-[#007991]"
-                />
+                  className="w-full p-2 border border-gray-300 rounded"
+                >
+                  {Object.values(columns).map((column) => (
+                    <option key={column.id} value={column.id}>
+                      {column.title}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
             <div>
-              <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
                 Priority
               </label>
-              <select
-                id="priority"
-                name="priority"
-                value={formData.priority}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#007991] focus:border-[#007991]"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
+              <div className="grid grid-cols-4 gap-2">
+                {["low", "medium", "high", "critical"].map((priority) => (
+                  <label
+                    key={priority}
+                    className={`flex items-center justify-center p-2 border rounded cursor-pointer transition-colors ${
+                      formData.priority === priority
+                        ? getPriorityActiveClass(priority)
+                        : "border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="priority"
+                      value={priority}
+                      checked={formData.priority === priority}
+                      onChange={handleChange}
+                      className="hidden"
+                    />
+                    <span className="capitalize">{priority}</span>
+                  </label>
+                ))}
+              </div>
             </div>
+
+            {users.length > 0 && (
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">
+                  Assigned To
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {users.map((user) => (
+                    <button
+                      key={user._id}
+                      type="button"
+                      onClick={() => toggleAssignUser(user._id)}
+                      className={`px-3 py-1 rounded-full text-sm flex items-center ${
+                        formData.assignedTo.includes(user._id)
+                          ? "bg-blue-100 text-blue-700 border border-blue-300"
+                          : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                      }`}
+                    >
+                      <User size={14} className="mr-1" />
+                      {user.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div>
-              <label htmlFor="column" className="block text-sm font-medium text-gray-700 mb-1">
-                Column
-              </label>
-              <select
-                id="columnId"
-                name="columnId"
-                value={formData.columnId}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#007991] focus:border-[#007991]"
-              >
-                {Object.values(columns).map((column) => (
-                  <option key={column.id} value={column.id}>
-                    {column.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Image Attachment
-              </label>
-              {!formData.image ? (
-                <div className="border-2 border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center justify-center">
-                  <Upload size={24} className="text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-500 mb-2">Upload an image (max 2MB)</p>
-                  <input
-                    type="file"
-                    id="image"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="image"
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md cursor-pointer hover:bg-gray-200"
-                  >
-                    Choose File
-                  </label>
-                </div>
-              ) : (
-                <div className="relative border rounded-md overflow-hidden h-40">
-                  <img
-                    src={formData.image}
-                    alt="Task"
-                    className="w-full h-full object-contain"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-gray-700 text-sm font-medium mb-2 flex items-center">
+                <CheckSquare size={16} className="mr-1" />
                 Checklist
               </label>
-              <div className="border border-gray-300 rounded-md p-4">
-                <div className="flex mb-2">
+              <div className="space-y-2">
+                {formData.checklist.map((item) => (
+                  <div key={item.id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={item.completed}
+                      onChange={() => toggleChecklistItem(item.id)}
+                      className="mr-2 rounded text-blue-500"
+                    />
+                    <span
+                      className={
+                        item.completed ? "line-through text-gray-500" : ""
+                      }
+                    >
+                      {item.text}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeChecklistItem(item.id)}
+                      className="ml-auto text-gray-400 hover:text-red-500"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                <div className="flex mt-2">
                   <input
                     type="text"
-                    value={newChecklistItem}
-                    onChange={(e) => setNewChecklistItem(e.target.value)}
+                    value={newCheckItem}
+                    onChange={(e) => setNewCheckItem(e.target.value)}
                     placeholder="Add a checklist item"
-                    className="flex-1 p-2 border border-gray-300 rounded-l-md focus:ring-[#007991] focus:border-[#007991]"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                    className="flex-1 p-2 border border-gray-300 rounded-l"
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
                         e.preventDefault();
                         handleAddChecklistItem();
                       }
@@ -258,95 +295,50 @@ function TaskModal({ isOpen, onClose, onSave, task = null, columns }) {
                   <button
                     type="button"
                     onClick={handleAddChecklistItem}
-                    className="px-3 py-2 bg-[#007991] text-white rounded-r-md hover:bg-[#006980]"
+                    className="bg-gray-100 border border-l-0 border-gray-300 px-3 rounded-r hover:bg-gray-200"
                   >
                     <Plus size={16} />
                   </button>
                 </div>
-
-                {formData.checklist.length === 0 ? (
-                  <p className="text-sm text-gray-500 py-2">No checklist items yet</p>
-                ) : (
-                  <div className="relative">
-                    {/* Scroll shadow indicators */}
-                    <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-white to-transparent pointer-events-none z-10"></div>
-                    <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent pointer-events-none z-10"></div>
-                    
-                    {/* Scrollable checklist */}
-                    <ul className="space-y-2 max-h-64 overflow-y-auto py-4 pr-1 
-                                   scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent scrollbar-thumb-rounded">
-                      {formData.checklist.map((item) => (
-                        <li key={item.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md">
-                          <div className="flex items-center">
-                            <input
-                              type="checkbox"
-                              checked={item.completed}
-                              onChange={(e) => handleChecklistItemChange(item.id, e.target.checked)}
-                              className="w-4 h-4 text-[#007991] focus:ring-[#007991] border-gray-300 rounded mr-2"
-                            />
-                            <span className={item.completed ? "line-through text-gray-500" : ""}>
-                              {item.text}
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleChecklistItemDelete(item.id)}
-                            className="text-red-500 hover:text-red-600"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Checklist progress */}
-                {formData.checklist.length > 0 && (
-                  <div className="mt-3">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>Progress</span>
-                      <span>
-                        {formData.checklist.filter(item => item.completed).length}/{formData.checklist.length} completed
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5">
-                      <div
-                        className="bg-blue-500 h-1.5 rounded-full"
-                        style={{
-                          width: `${
-                            formData.checklist.length > 0
-                              ? (formData.checklist.filter(item => item.completed).length / formData.checklist.length) * 100
-                              : 0
-                          }%`
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
-          </div>
 
-          <div className="flex justify-end space-x-3 pt-6 mt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-[#007991] text-white rounded-md hover:bg-[#006980]"
-            >
-              {isEditing ? "Save Changes" : "Create Task"}
-            </button>
+            <div className="flex justify-end space-x-2 pt-4 border-t">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                {task ? "Save Changes" : "Create Task"}
+              </button>
+            </div>
           </div>
         </form>
       </div>
     </div>
   );
-}
+};
+
+// Helper function to get priority colors
+const getPriorityActiveClass = (priority) => {
+  switch (priority) {
+    case "low":
+      return "border-green-500 bg-green-50 text-green-700";
+    case "medium":
+      return "border-blue-500 bg-blue-50 text-blue-700";
+    case "high":
+      return "border-orange-500 bg-orange-50 text-orange-700";
+    case "critical":
+      return "border-red-500 bg-red-50 text-red-700";
+    default:
+      return "border-blue-500 bg-blue-50 text-blue-700";
+  }
+};
 
 export default TaskModal;

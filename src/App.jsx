@@ -18,16 +18,16 @@ import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
 import { Toaster } from "sonner";
 import { UserProvider } from "./context/UserContext";
 // Dashboard pages
+import BoardsPage from "./pages/BoardsPage";
+import KanbanPage from "./pages/KanbanPage";
 import ClientDetailsPage from "./pages/dashboard/ClientDetailsPage";
 import ClientsPage from "./pages/dashboard/ClientsPage";
 import HelpCenterPage from "./pages/dashboard/HelpCenterPage";
 import InboxPage from "./pages/dashboard/InboxPage";
-import KanbanPage from "./pages/dashboard/KanbanPage";
 import OverviewPage from "./pages/dashboard/OverviewPage";
 import ProjectDetailsPage from "./pages/dashboard/ProjectDetailsPage";
 import ProjectsPage from "./pages/dashboard/ProjectsPage";
 import SettingsPage from "./pages/dashboard/SettingsPage";
-
 // Auth guard for protected routes
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem("token") !== null;
@@ -82,6 +82,8 @@ function AnimatedRoutes() {
           <Route path="kanban" element={<KanbanPage />} />
           <Route path="help" element={<HelpCenterPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="boards" element={<BoardsPage />} />
+          <Route path="boards/:boardId" element={<KanbanPage />} />
         </Route>
 
         {/* 404 route */}

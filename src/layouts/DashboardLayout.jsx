@@ -140,7 +140,7 @@ function DashboardLayout() {
       path: "/dashboard/inbox",
       icon: <MessageSquare size={20} />,
     },
-    { name: "Kanban", path: "/dashboard/kanban", icon: <Trello size={20} /> },
+    { name: "Kanban", path: "/dashboard/boards", icon: <Trello size={20} /> },
     {
       name: "Help Center",
       path: "/dashboard/help",

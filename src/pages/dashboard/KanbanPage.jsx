@@ -8,8 +8,9 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Calendar } from "lucide-react";
+import { Calendar, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { toast, Toaster } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import KanbanColumn from "../../components/kanban/KanbanColumn";
@@ -395,6 +396,14 @@ function KanbanPage() {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 min-h-[80vh]">
+      <div className="flex items-center text-lg text-gray-500 mb-4">
+        <Link to="/dashboard/boards" className="hover:text-[#007991]">
+          Kanban Boards
+        </Link>
+        <ChevronRight size={20} className="mx-2" />
+        <span className="text-gray-700 font-medium"></span>
+      </div>
+
       <h2 className="text-xl font-medium mb-2">Kanban Board</h2>
       <p className="text-gray-500 mb-6">
         Manage your tasks. Improve your productivity.

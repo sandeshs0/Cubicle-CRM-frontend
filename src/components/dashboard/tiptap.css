@@ -102,3 +102,15 @@
   20% { opacity: 1; }
   100% { transform: translate(var(--tx), var(--ty)) rotate(var(--r)) scale(0); opacity: 0; }
 }
+
+
+/* Add this to your CSS file or in a style tag */
+.dragging-task {
+  opacity: 0.5;
+  cursor: grabbing !important;
+}
+
+/* Add this to improve touch handling on mobile */
+html {
+  touch-action: none;
+}
