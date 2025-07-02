@@ -1,4 +1,4 @@
-import { Calendar, CheckSquare, Plus, Trash2, User, X } from "lucide-react";
+import { Calendar, CheckSquare, Plus, Trash2, User, X, Tag } from "lucide-react";
 import { useEffect, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -9,7 +9,7 @@ const TaskModal = ({
   boardId,
   onClose,
   onSave,
-  columns = {}, // Add default empty object here
+  columns = {},
   users = [],
 }) => {
   const [formData, setFormData] = useState({
@@ -19,12 +19,24 @@ const TaskModal = ({
     priority: "medium",
     assignedTo: [],
     columnId: columnId,
-    checklist: [],
+    subtasks: [], // Renamed from checklist to subtasks
+    labels: [], // Added labels array
+    coverImage: "", // Added coverImage field
   });
-  const [newCheckItem, setNewCheckItem] = useState("");
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState(""); // Renamed from newCheckItem
+  const [newLabel, setNewLabel] = useState({ text: "", color: "#3b82f6" });
 
   useEffect(() => {
     if (task) {
+      // Transform existing data if needed
+      const subtasks = task.checklist
+        ? task.checklist.map((item) => ({
+            _id: item.id, // Use existing id as _id for updating
+            title: item.text, // Map text to title
+            isCompleted: item.completed, // Map completed to isCompleted
+          }))
+        : task.subtasks || [];
+
       setFormData({
         title: task.title || "",
         description: task.description || "",
@@ -32,7 +44,9 @@ const TaskModal = ({
         priority: task.priority || "medium",
         assignedTo: task.assignedTo || [],
         columnId: task.columnId || columnId,
-        checklist: task.checklist || [],
+        subtasks: subtasks,
+        labels: task.labels || [],
+        coverImage: task.coverImage || "",
       });
     } else {
       setFormData({
@@ -57,34 +71,65 @@ const TaskModal = ({
     });
   };
 
-  const handleAddChecklistItem = () => {
-    if (newCheckItem.trim()) {
+  const handleAddSubtask = () => {
+    if (newSubtaskTitle.trim()) {
       const newItem = {
-        id: Date.now().toString(),
-        text: newCheckItem.trim(),
-        completed: false,
+        // No id for new subtasks, API will generate one
+        title: newSubtaskTitle.trim(),
+        isCompleted: false,
       };
       setFormData({
         ...formData,
-        checklist: [...formData.checklist, newItem],
+        subtasks: [...formData.subtasks, newItem],
       });
-      setNewCheckItem("");
+      setNewSubtaskTitle("");
     }
   };
 
-  const toggleChecklistItem = (itemId) => {
+  const toggleSubtaskCompletion = (index) => {
+    const updatedSubtasks = [...formData.subtasks];
+    updatedSubtasks[index] = {
+      ...updatedSubtasks[index],
+      isCompleted: !updatedSubtasks[index].isCompleted,
+    };
+
     setFormData({
       ...formData,
-      checklist: formData.checklist.map((item) =>
-        item.id === itemId ? { ...item, completed: !item.completed } : item
-      ),
+      subtasks: updatedSubtasks,
     });
   };
 
-  const removeChecklistItem = (itemId) => {
+  const removeSubtask = (index) => {
+    const updatedSubtasks = [...formData.subtasks];
+    updatedSubtasks.splice(index, 1);
+
     setFormData({
       ...formData,
-      checklist: formData.checklist.filter((item) => item.id !== itemId),
+      subtasks: updatedSubtasks,
+    });
+  };
+
+  const handleAddLabel = () => {
+    if (newLabel.text.trim()) {
+      const labelId = newLabel.text.toLowerCase().replace(/\s+/g, "-");
+      const newLabelObj = {
+        id: labelId,
+        text: newLabel.text.trim(),
+        color: newLabel.color,
+      };
+
+      setFormData({
+        ...formData,
+        labels: [...formData.labels, newLabelObj],
+      });
+      setNewLabel({ text: "", color: "#3b82f6" });
+    }
+  };
+
+  const removeLabel = (labelId) => {
+    setFormData({
+      ...formData,
+      labels: formData.labels.filter((label) => label.id !== labelId),
     });
   };
 
@@ -112,7 +157,7 @@ const TaskModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-2xl p-6">
+      <div className="bg-white rounded-lg w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">
             {task ? "Edit Task" : "Create Task"}
@@ -127,6 +172,7 @@ const TaskModal = ({
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
+            {/* Title Field */}
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-2">
                 Title
@@ -142,6 +188,36 @@ const TaskModal = ({
               />
             </div>
 
+            {/* Cover Image Field */}
+            <div>
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Cover Image URL (Optional)
+              </label>
+              <input
+                type="url"
+                name="coverImage"
+                value={formData.coverImage}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded"
+                placeholder="https://example.com/image.jpg"
+              />
+              {formData.coverImage && (
+                <div className="mt-2 relative h-32 rounded overflow-hidden">
+                  <img
+                    src={formData.coverImage}
+                    alt="Cover"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src =
+                        "https://via.placeholder.com/300x100?text=Invalid+Image+URL";
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Description Field */}
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-2">
                 Description
@@ -156,6 +232,7 @@ const TaskModal = ({
               />
             </div>
 
+            {/* Due Date and Column Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-2">
@@ -182,19 +259,22 @@ const TaskModal = ({
                 </label>
                 <select
                   name="columnId"
-                  value={formData.columnId}
+                  value={formData.columnId || ""}
                   onChange={handleChange}
                   className="w-full p-2 border border-gray-300 rounded"
                 >
-                  {Object.values(columns).map((column) => (
-                    <option key={column.id} value={column.id}>
-                      {column.title}
-                    </option>
-                  ))}
+                  {columns && typeof columns === "object" && Object.keys(columns).length > 0
+                    ? Object.values(columns).map((column) => (
+                        <option key={column.id} value={column.id}>
+                          {column.title}
+                        </option>
+                      ))
+                    : null}
                 </select>
               </div>
             </div>
 
+            {/* Priority Field */}
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-2">
                 Priority
@@ -223,6 +303,73 @@ const TaskModal = ({
               </div>
             </div>
 
+            {/* Labels Field - NEW */}
+            <div>
+              <label className="block text-gray-700 text-sm font-medium mb-2 flex items-center">
+                <Tag size={16} className="mr-1" />
+                Labels
+              </label>
+
+              {/* Display existing labels */}
+              <div className="flex flex-wrap gap-2 mb-2">
+                {formData.labels.map((label) => (
+                  <div
+                    key={label.id}
+                    className="flex items-center px-3 py-1 rounded-full text-sm"
+                    style={{
+                      backgroundColor: `${label.color}20`, // 20% opacity version of the color
+                      borderColor: label.color,
+                      color: label.color,
+                    }}
+                  >
+                    <span>{label.text}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeLabel(label.id)}
+                      className="ml-2 text-current hover:text-red-500"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add new label */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newLabel.text}
+                  onChange={(e) =>
+                    setNewLabel({ ...newLabel, text: e.target.value })
+                  }
+                  placeholder="Add a label"
+                  className="flex-1 p-2 border border-gray-300 rounded"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddLabel();
+                    }
+                  }}
+                />
+                <input
+                  type="color"
+                  value={newLabel.color}
+                  onChange={(e) =>
+                    setNewLabel({ ...newLabel, color: e.target.value })
+                  }
+                  className="w-10 h-10 p-1 border border-gray-300 rounded cursor-pointer"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddLabel}
+                  className="p-2 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200"
+                >
+                  <Plus size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Assigned Users Field */}
             {users.length > 0 && (
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-2">
@@ -248,30 +395,31 @@ const TaskModal = ({
               </div>
             )}
 
+            {/* Subtasks Field (Renamed from Checklist) */}
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-2 flex items-center">
                 <CheckSquare size={16} className="mr-1" />
-                Checklist
+                Subtasks
               </label>
               <div className="space-y-2">
-                {formData.checklist.map((item) => (
-                  <div key={item.id} className="flex items-center">
+                {formData.subtasks.map((subtask, index) => (
+                  <div key={subtask._id || index} className="flex items-center">
                     <input
                       type="checkbox"
-                      checked={item.completed}
-                      onChange={() => toggleChecklistItem(item.id)}
+                      checked={subtask.isCompleted}
+                      onChange={() => toggleSubtaskCompletion(index)}
                       className="mr-2 rounded text-blue-500"
                     />
                     <span
                       className={
-                        item.completed ? "line-through text-gray-500" : ""
+                        subtask.isCompleted ? "line-through text-gray-500" : ""
                       }
                     >
-                      {item.text}
+                      {subtask.title}
                     </span>
                     <button
                       type="button"
-                      onClick={() => removeChecklistItem(item.id)}
+                      onClick={() => removeSubtask(index)}
                       className="ml-auto text-gray-400 hover:text-red-500"
                     >
                       <Trash2 size={14} />
@@ -281,20 +429,20 @@ const TaskModal = ({
                 <div className="flex mt-2">
                   <input
                     type="text"
-                    value={newCheckItem}
-                    onChange={(e) => setNewCheckItem(e.target.value)}
-                    placeholder="Add a checklist item"
+                    value={newSubtaskTitle}
+                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                    placeholder="Add a subtask"
                     className="flex-1 p-2 border border-gray-300 rounded-l"
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        handleAddChecklistItem();
+                        handleAddSubtask();
                       }
                     }}
                   />
                   <button
                     type="button"
-                    onClick={handleAddChecklistItem}
+                    onClick={handleAddSubtask}
                     className="bg-gray-100 border border-l-0 border-gray-300 px-3 rounded-r hover:bg-gray-200"
                   >
                     <Plus size={16} />
@@ -303,6 +451,7 @@ const TaskModal = ({
               </div>
             </div>
 
+            {/* Submit Buttons */}
             <div className="flex justify-end space-x-2 pt-4 border-t">
               <button
                 type="button"

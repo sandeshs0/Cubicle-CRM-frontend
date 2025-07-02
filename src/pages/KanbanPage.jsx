@@ -89,10 +89,16 @@ function KanbanPage() {
             description: task.description,
             dueDate: task.dueDate,
             priority: task.priority,
-            checklist: task.checklist || [],
-            assignedTo: task.assignedTo,
+            // Make sure we include all these properties
+            subtasks: task.subtasks || [],
+            labels: task.labels || [],
+            coverImage: task.coverImage || "",
+            completion: task.completion || 0,
+            assignedTo: task.assignedTo || [],
             columnId: task.columnId,
             boardId: task.boardId,
+            position: task.position,
+            createdBy: task.createdBy,
           });
         }
       });
@@ -308,7 +314,6 @@ function KanbanPage() {
 
           // Add to new column
           newColumns[updatedTask.columnId].tasks.push(updatedTask);
-          
         } else {
           // Update in the same column
           const taskIndex = newColumns[currentTask.columnId].tasks.findIndex(
@@ -493,32 +498,81 @@ function KanbanPage() {
         {createPortal(
           <DragOverlay adjustScale zIndex={100}>
             {activeTask ? (
-              <div className="bg-white rounded-md shadow-lg p-3 border border-blue-300 max-w-[280px] opacity-90">
-                <div className="text-sm font-medium text-gray-800 mb-2">
-                  {activeTask.title}
-                </div>
-
-                {activeTask.description && (
-                  <p className="text-xs text-gray-500 line-clamp-2 mb-2">
-                    {activeTask.description}
-                  </p>
+              <div className="bg-white rounded-md shadow-lg border border-blue-300 max-w-[280px] opacity-90">
+                {/* Include cover image in the overlay */}
+                {activeTask.coverImage && (
+                  <div className="w-full h-24 overflow-hidden rounded-t-md">
+                    <img
+                      src={activeTask.coverImage}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = "none";
+                      }}
+                    />
+                  </div>
                 )}
 
-                <div className="flex flex-wrap gap-2">
-                  {activeTask.priority && (
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        activeTask.priority === "high"
-                          ? "bg-orange-100 text-orange-800"
-                          : activeTask.priority === "medium"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {activeTask.priority.charAt(0).toUpperCase() +
-                        activeTask.priority.slice(1)}
-                    </span>
+                <div className="p-3">
+                  {/* Show labels in drag overlay */}
+                  {activeTask.labels && activeTask.labels.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {activeTask.labels.map((label) => (
+                        <span
+                          key={label.id}
+                          className="text-xs px-2 py-0.5 rounded-full"
+                          style={{
+                            backgroundColor: `${label.color}20`,
+                            color: label.color,
+                          }}
+                        >
+                          {label.text}
+                        </span>
+                      ))}
+                    </div>
                   )}
+
+                  <div className="text-sm font-medium text-gray-800 mb-2">
+                    {activeTask.title}
+                  </div>
+
+                  {activeTask.description && (
+                    <p className="text-xs text-gray-500 line-clamp-2 mb-2">
+                      {activeTask.description}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    {activeTask.priority && (
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          activeTask.priority === "high"
+                            ? "bg-orange-100 text-orange-800"
+                            : activeTask.priority === "medium"
+                            ? "bg-blue-100 text-blue-800"
+                            : activeTask.priority === "critical"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {activeTask.priority.charAt(0).toUpperCase() +
+                          activeTask.priority.slice(1)}
+                      </span>
+                    )}
+
+                    {/* Show subtasks count */}
+                    {activeTask.subtasks && activeTask.subtasks.length > 0 && (
+                      <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 flex items-center">
+                        <CheckSquare size={12} className="mr-1" />
+                        {
+                          activeTask.subtasks.filter((s) => s.isCompleted)
+                            .length
+                        }
+                        /{activeTask.subtasks.length}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : null}
