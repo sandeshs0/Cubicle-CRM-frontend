@@ -526,6 +526,23 @@ const ActivityTab = ({ activities = [], client = {}, project = {} }) => {
     }
   }, [isTyping, typingText, editor]);
 
+  // Add this function at the top of your ActivityTab component
+
+  const getTimeAgo = (dateString) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 60) return "just now";
+    if (diffInSeconds < 3600)
+      return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    if (diffInSeconds < 2592000)
+      return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    return `${Math.floor(diffInSeconds / 2592000)} months ago`;
+  };
+
   return (
     <div className="p-6">
       {/* Success Toast Message */}
@@ -1045,34 +1062,91 @@ const ActivityTab = ({ activities = [], client = {}, project = {} }) => {
                           className="cursor-pointer hover:bg-gray-50"
                           onClick={() => openEmailModal(item)}
                         >
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-start flex-1">
                               <Mail
                                 size={16}
                                 className={
                                   item.status === "failed"
-                                    ? "text-red-500 mr-2"
-                                    : "text-blue-500 mr-2"
+                                    ? "text-red-500 mr-2 mt-0.5"
+                                    : "text-blue-500 mr-2 mt-0.5"
                                 }
                               />
-                              <span className="font-medium">
-                                {item.subject}
-                                {item.status === "failed" && (
-                                  <span className="ml-2 text-xs px-2 py-1 bg-red-50 text-red-600 rounded-full">
-                                    Failed to send
-                                  </span>
-                                )}
-                              </span>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="font-medium">{item.subject}</span>
+
+                                  {/* Email Status Badges */}
+                                  <div className="flex items-center gap-1">
+                                    {item.status === "failed" && (
+                                      <span className="text-xs px-2 py-1 bg-red-50 text-red-600 rounded-full border border-red-100">
+                                        Failed to send
+                                      </span>
+                                    )}
+
+                                    {item.status === "sent" && (
+                                      <span className="text-xs px-2 py-1 bg-green-50 text-green-600 rounded-full border border-green-100">
+                                        Sent
+                                      </span>
+                                    )}
+
+                                    {/* Read Status Badge */}
+                                    {item.opened ? (
+                                      <span className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100 flex items-center">
+                                        <svg
+                                          className="w-3 h-3 mr-1"
+                                          fill="currentColor"
+                                          viewBox="0 0 20 20"
+                                        >
+                                          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                          <path
+                                            fillRule="evenodd"
+                                            d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                                            clipRule="evenodd"
+                                          />
+                                        </svg>
+                                        Read
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs px-2 py-1 bg-gray-50 text-gray-600 rounded-full border border-gray-200">
+                                        Unread
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="text-sm text-gray-600 mb-2">
+                                  To:{" "}
+                                  {item.recipients
+                                    ?.map((r) => r.name || r.email)
+                                    .join(", ")}
+                                </div>
+
+                                {/* Timestamps */}
+                                <div className="flex flex-col gap-1 text-xs text-gray-500">
+                                  <div className="flex items-center gap-4">
+                                    <span>
+                                      Sent:{" "}
+                                      {new Date(item.createdAt).toLocaleString()}
+                                    </span>
+
+                                    {item.opened && item.openedAt && (
+                                      <span className="text-blue-600">
+                                        Opened:{" "}
+                                        {new Date(item.openedAt).toLocaleString()}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Time since opened */}
+                                  {item.opened && item.openedAt && (
+                                    <span className="text-blue-500 text-xs">
+                                      Read {getTimeAgo(item.openedAt)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                            <span className="text-xs text-gray-500">
-                              {new Date(item.createdAt).toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="text-sm text-gray-600 mt-1">
-                            To:{" "}
-                            {item.recipients
-                              ?.map((r) => r.name || r.email)
-                              .join(", ")}
                           </div>
                         </div>
                       ) : (
