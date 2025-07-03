@@ -1131,9 +1131,17 @@ const ActivityTab = ({ activities = [], client = {}, project = {} }) => {
                   {/* Read status in modal */}
                   {selectedEmail.opened ? (
                     <span className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100 flex items-center">
-                      <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-                        <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/>
+                      <svg
+                        className="w-3 h-3 mr-1"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                        <path
+                          fillRule="evenodd"
+                          d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                       Read
                     </span>
@@ -1165,7 +1173,9 @@ const ActivityTab = ({ activities = [], client = {}, project = {} }) => {
                     </div>
                   </div>
                   <div className="mb-2">
-                    <div className="text-sm font-medium text-gray-500">Sent:</div>
+                    <div className="text-sm font-medium text-gray-500">
+                      Sent:
+                    </div>
                     <div className="text-gray-700">
                       {new Date(selectedEmail.createdAt).toLocaleString()}
                     </div>
@@ -1176,14 +1186,23 @@ const ActivityTab = ({ activities = [], client = {}, project = {} }) => {
                 {selectedEmail.opened && selectedEmail.openedAt && (
                   <div className="mt-3 p-3 bg-blue-50 rounded-md border border-blue-100">
                     <div className="flex items-center text-sm text-blue-700">
-                      <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-                        <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/>
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                        <path
+                          fillRule="evenodd"
+                          d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                       <strong>Email was read</strong>
                     </div>
                     <div className="text-sm text-blue-600 mt-1">
-                      Opened on {new Date(selectedEmail.openedAt).toLocaleString()}
+                      Opened on{" "}
+                      {new Date(selectedEmail.openedAt).toLocaleString()}
                     </div>
                   </div>
                 )}
