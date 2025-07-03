@@ -18,11 +18,49 @@ const getAuthHeader = () => {
  */
 export const createTask = async (taskData) => {
   try {
-    const response = await axios.post(
-      `${API_URL}/tasks`,
-      taskData,
-      getAuthHeader()
-    );
+    const formData = new FormData();
+
+    // Add basic task fields
+    formData.append("title", taskData.title);
+    formData.append("columnId", taskData.columnId);
+    formData.append("boardId", taskData.boardId);
+    if (taskData.description)
+      formData.append("description", taskData.description);
+    if (taskData.dueDate)
+      formData.append("dueDate", taskData.dueDate.toISOString());
+    if (taskData.priority) formData.append("priority", taskData.priority);
+
+    // Handle assignedTo - append each ID individually with the same field name
+    if (taskData.assignedTo && taskData.assignedTo.length > 0) {
+      taskData.assignedTo.forEach((userId) => {
+        formData.append("assignedTo[]", userId); // Note the [] in the field name
+      });
+    } else {
+      // Empty array case
+      formData.append("assignedTo", "[]");
+    }
+
+    if (taskData.labels && taskData.labels.length > 0) {
+      formData.append("labels", JSON.stringify(taskData.labels));
+    } else {
+      formData.append("labels", "[]");
+    }
+
+    if (taskData.subtasks && taskData.subtasks.length > 0) {
+      formData.append("subtasks", JSON.stringify(taskData.subtasks));
+    }
+
+    // Handle cover image file if it exists
+    if (taskData.coverImage instanceof File) {
+      formData.append("coverImage", taskData.coverImage);
+    }
+
+    const response = await axios.post(`${API_URL}/tasks`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        ...getAuthHeader().headers,
+      },
+    });
     return response.data.data;
   } catch (error) {
     console.error("Error creating task:", error);
@@ -53,11 +91,62 @@ export const getTask = async (id) => {
  */
 export const updateTask = async (id, taskData) => {
   try {
-    const response = await axios.put(
-      `${API_URL}/tasks/${id}`,
-      taskData,
-      getAuthHeader()
-    );
+    const formData = new FormData();
+
+    // Add all fields that might have changed
+    if (taskData.title !== undefined) formData.append("title", taskData.title);
+    if (taskData.description !== undefined)
+      formData.append("description", taskData.description);
+    if (taskData.columnId !== undefined)
+      formData.append("columnId", taskData.columnId);
+    if (taskData.dueDate !== undefined) {
+      formData.append(
+        "dueDate",
+        taskData.dueDate ? taskData.dueDate.toISOString() : ""
+      );
+    }
+    if (taskData.priority !== undefined)
+      formData.append("priority", taskData.priority);
+
+    // Handle assignedTo - correctly handle array
+    if (taskData.assignedTo !== undefined) {
+      if (taskData.assignedTo && taskData.assignedTo.length > 0) {
+        taskData.assignedTo.forEach((userId) => {
+          formData.append("assignedTo", userId); // Note the [] in the field name
+        });
+      } else {
+        // Empty array case
+        // formData.append("assignedTo", []);
+      }
+    }
+
+    // Handle labels - correctly handle array
+    if (taskData.labels !== undefined) {
+      if (taskData.labels && taskData.labels.length > 0) {
+        formData.append("labels", JSON.stringify(taskData.labels));
+      } else {
+        // formData.append("labels", []);
+      }
+    }
+
+    if (taskData.subtasks !== undefined) {
+      formData.append("subtasks", JSON.stringify(taskData.subtasks || []));
+    }
+
+    // Handle cover image
+    if (taskData.coverImage instanceof File) {
+      formData.append("coverImage", taskData.coverImage);
+    } else if (taskData.coverImage === null) {
+      // User wants to remove the cover image
+      formData.append("removeCover", "true");
+    }
+
+    const response = await axios.put(`${API_URL}/tasks/${id}`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        ...getAuthHeader().headers,
+      },
+    });
     return response.data.data;
   } catch (error) {
     console.error("Error updating task:", error);

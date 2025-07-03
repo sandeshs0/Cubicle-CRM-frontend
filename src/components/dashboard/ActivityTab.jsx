@@ -1123,9 +1123,27 @@ const ActivityTab = ({ activities = [], client = {}, project = {} }) => {
             <div className="relative bg-white rounded-lg shadow-xl max-w-xl w-full mx-auto overflow-hidden transform transition-all">
               {/* Header */}
               <div className="border-b border-gray-200 p-4 flex justify-between items-center bg-gray-50">
-                <h3 className="font-medium text-xl text-gray-800">
-                  {selectedEmail.subject}
-                </h3>
+                <div className="flex items-center gap-3">
+                  <h3 className="font-medium text-xl text-gray-800">
+                    {selectedEmail.subject}
+                  </h3>
+
+                  {/* Read status in modal */}
+                  {selectedEmail.opened ? (
+                    <span className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100 flex items-center">
+                      <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                        <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/>
+                      </svg>
+                      Read
+                    </span>
+                  ) : (
+                    <span className="text-xs px-2 py-1 bg-gray-50 text-gray-600 rounded-full border border-gray-200">
+                      Unread
+                    </span>
+                  )}
+                </div>
+
                 <button
                   className="rounded-full hover:bg-gray-200 p-2 transition-colors"
                   onClick={closeEmailModal}
@@ -1147,14 +1165,28 @@ const ActivityTab = ({ activities = [], client = {}, project = {} }) => {
                     </div>
                   </div>
                   <div className="mb-2">
-                    <div className="text-sm font-medium text-gray-500">
-                      Date:
-                    </div>
+                    <div className="text-sm font-medium text-gray-500">Sent:</div>
                     <div className="text-gray-700">
                       {new Date(selectedEmail.createdAt).toLocaleString()}
                     </div>
                   </div>
                 </div>
+
+                {/* Add read timestamp */}
+                {selectedEmail.opened && selectedEmail.openedAt && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-md border border-blue-100">
+                    <div className="flex items-center text-sm text-blue-700">
+                      <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                        <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/>
+                      </svg>
+                      <strong>Email was read</strong>
+                    </div>
+                    <div className="text-sm text-blue-600 mt-1">
+                      Opened on {new Date(selectedEmail.openedAt).toLocaleString()}
+                    </div>
+                  </div>
+                )}
 
                 {selectedEmail.status === "failed" && (
                   <div className="mt-2 bg-red-50 text-red-600 text-sm py-1 px-3 rounded-md inline-block border border-red-100">

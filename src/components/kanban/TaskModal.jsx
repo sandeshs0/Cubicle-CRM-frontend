@@ -1,5 +1,15 @@
-import { Calendar, CheckSquare, Plus, Trash2, User, X, Tag } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+  Calendar,
+  CheckSquare,
+  Plus,
+  Trash2,
+  User,
+  X,
+  Tag,
+  Image,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -19,40 +29,44 @@ const TaskModal = ({
     priority: "medium",
     assignedTo: [],
     columnId: columnId,
-    subtasks: [], // Renamed from checklist to subtasks
-    labels: [], // Added labels array
-    coverImage: "", // Added coverImage field
+    subtasks: [],
+    labels: [],
+    coverImage: null,
   });
-  const [newSubtaskTitle, setNewSubtaskTitle] = useState(""); // Renamed from newCheckItem
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [newLabel, setNewLabel] = useState({ text: "", color: "#3b82f6" });
+  const [coverImagePreview, setCoverImagePreview] = useState("");
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (task) {
       // Transform existing data if needed
-      const subtasks = task.checklist
-        ? task.checklist.map((item) => ({
-            _id: item.id, // Use existing id as _id for updating
-            title: item.text, // Map text to title
-            isCompleted: item.completed, // Map completed to isCompleted
-          }))
-        : task.subtasks || [];
+      const subtasks = task.subtasks || [];
 
       setFormData({
         title: task.title || "",
         description: task.description || "",
         dueDate: task.dueDate ? new Date(task.dueDate) : null,
         priority: task.priority || "medium",
-        assignedTo: task.assignedTo || [],
+        assignedTo: task.assignedTo?.map((user) => user._id || user) || [],
         columnId: task.columnId || columnId,
         subtasks: subtasks,
         labels: task.labels || [],
-        coverImage: task.coverImage || "",
+        coverImage: null, // Reset file input, but keep preview
       });
+
+      // Set image preview if task has coverImage URL
+      if (task.coverImage) {
+        setCoverImagePreview(task.coverImage);
+      } else {
+        setCoverImagePreview("");
+      }
     } else {
       setFormData({
         ...formData,
         columnId: columnId,
       });
+      setCoverImagePreview("");
     }
   }, [task, columnId]);
 
@@ -71,10 +85,36 @@ const TaskModal = ({
     });
   };
 
+  // Handle file selection for cover image
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({
+        ...formData,
+        coverImage: file,
+      });
+
+      // Create a preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setCoverImagePreview(previewUrl);
+    }
+  };
+
+  // Remove cover image
+  const handleRemoveCoverImage = () => {
+    setFormData({
+      ...formData,
+      coverImage: null,
+    });
+    setCoverImagePreview("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleAddSubtask = () => {
     if (newSubtaskTitle.trim()) {
       const newItem = {
-        // No id for new subtasks, API will generate one
         title: newSubtaskTitle.trim(),
         isCompleted: false,
       };
@@ -149,10 +189,23 @@ const TaskModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({
+
+    // Add boardId to the form data
+    const taskDataToSave = {
       ...formData,
       boardId,
-    });
+    };
+
+    // If we're editing and the coverImage wasn't changed but there was one before,
+    // we'll need to make sure the backend knows not to change it
+    if (task && task.coverImage && !formData.coverImage) {
+      // coverImage is null but we want to keep the existing one
+      if (coverImagePreview === task.coverImage) {
+        delete taskDataToSave.coverImage;
+      }
+    }
+
+    onSave(taskDataToSave);
   };
 
   return (
@@ -190,29 +243,50 @@ const TaskModal = ({
 
             {/* Cover Image Field */}
             <div>
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Cover Image URL (Optional)
+              <label className="block text-gray-700 text-sm font-medium mb-2 flex items-center">
+                <Image size={16} className="mr-2" />
+                Cover Image
               </label>
-              <input
-                type="url"
-                name="coverImage"
-                value={formData.coverImage}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded"
-                placeholder="https://example.com/image.jpg"
-              />
-              {formData.coverImage && (
-                <div className="mt-2 relative h-32 rounded overflow-hidden">
+
+              {coverImagePreview ? (
+                <div className="relative">
                   <img
-                    src={formData.coverImage}
-                    alt="Cover"
-                    className="w-full h-full object-cover"
+                    src={coverImagePreview}
+                    alt="Cover Preview"
+                    className="w-full h-40 object-cover rounded-md mb-2"
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src =
-                        "https://via.placeholder.com/300x100?text=Invalid+Image+URL";
+                      e.target.src = "https://via.placeholder.com/300x150?text=Invalid+Image";
                     }}
                   />
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoverImage}
+                    className="absolute top-2 right-2 bg-white bg-opacity-70 p-1 rounded-full hover:bg-opacity-100"
+                  >
+                    <XCircle size={20} className="text-red-500" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-md h-32">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex flex-col items-center py-4 px-6 text-gray-500 hover:text-gray-600"
+                  >
+                    <Image size={32} className="mb-2" />
+                    <span>Click to upload a cover image</span>
+                    <span className="text-xs text-gray-400 mt-1">
+                      JPG, PNG, GIF or WEBP (Max 5MB)
+                    </span>
+                  </button>
                 </div>
               )}
             </div>
@@ -303,7 +377,7 @@ const TaskModal = ({
               </div>
             </div>
 
-            {/* Labels Field - NEW */}
+            {/* Labels Field */}
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-2 flex items-center">
                 <Tag size={16} className="mr-1" />
@@ -317,7 +391,7 @@ const TaskModal = ({
                     key={label.id}
                     className="flex items-center px-3 py-1 rounded-full text-sm"
                     style={{
-                      backgroundColor: `${label.color}20`, // 20% opacity version of the color
+                      backgroundColor: `${label.color}20`,
                       borderColor: label.color,
                       color: label.color,
                     }}
@@ -395,7 +469,7 @@ const TaskModal = ({
               </div>
             )}
 
-            {/* Subtasks Field (Renamed from Checklist) */}
+            {/* Subtasks Field */}
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-2 flex items-center">
                 <CheckSquare size={16} className="mr-1" />

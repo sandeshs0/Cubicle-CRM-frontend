@@ -11,7 +11,7 @@ import {
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { format, isAfter } from "date-fns";
-import { ChevronLeft, Loader, Plus } from "lucide-react";
+import { CheckSquare, ChevronLeft, Loader, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
@@ -313,13 +313,41 @@ function KanbanPage() {
           newColumns[currentTask.columnId].tasks = oldColumnTasks;
 
           // Add to new column
-          newColumns[updatedTask.columnId].tasks.push(updatedTask);
+          newColumns[updatedTask.columnId].tasks.push({
+            id: updatedTask._id,
+            title: updatedTask.title,
+            description: updatedTask.description,
+            dueDate: updatedTask.dueDate,
+            priority: updatedTask.priority,
+            subtasks: updatedTask.subtasks || [],
+            labels: updatedTask.labels || [],
+            coverImage: updatedTask.coverImage || "",
+            completion: updatedTask.completion || 0,
+            assignedTo: updatedTask.assignedTo || [],
+            columnId: updatedTask.columnId,
+            boardId: updatedTask.boardId,
+          });
         } else {
           // Update in the same column
           const taskIndex = newColumns[currentTask.columnId].tasks.findIndex(
             (t) => t.id === currentTask.id
           );
-          newColumns[currentTask.columnId].tasks[taskIndex] = updatedTask;
+
+          if (taskIndex !== -1) {
+            newColumns[currentTask.columnId].tasks[taskIndex] = {
+              ...newColumns[currentTask.columnId].tasks[taskIndex],
+              id: updatedTask._id || currentTask.id,
+              title: updatedTask.title,
+              description: updatedTask.description,
+              dueDate: updatedTask.dueDate,
+              priority: updatedTask.priority,
+              subtasks: updatedTask.subtasks || [],
+              labels: updatedTask.labels || [],
+              coverImage: updatedTask.coverImage || "",
+              completion: updatedTask.completion || 0,
+              assignedTo: updatedTask.assignedTo || [],
+            };
+          }
         }
 
         setColumns(newColumns);
@@ -328,17 +356,34 @@ function KanbanPage() {
         // Creating new task
         const newTask = await createTask(taskData);
 
-        // Add to UI
+        // Add to UI with the full returned task object
         const newColumns = { ...columns };
-        newColumns[taskData.columnId].tasks.push(newTask);
-        setColumns(newColumns);
+        if (newColumns[taskData.columnId]) {
+          newColumns[taskData.columnId].tasks.push({
+            id: newTask._id,
+            title: newTask.title,
+            description: newTask.description,
+            dueDate: newTask.dueDate,
+            priority: newTask.priority,
+            subtasks: newTask.subtasks || [],
+            labels: newTask.labels || [],
+            coverImage: newTask.coverImage || "",
+            completion: newTask.completion || 0,
+            assignedTo: newTask.assignedTo || [],
+            columnId: newTask.columnId,
+            boardId: newTask.boardId,
+          });
+          setColumns(newColumns);
+        }
         toast.success("Task created successfully");
       }
 
       setTaskModalOpen(false);
     } catch (error) {
       console.error("Failed to save task:", error);
-      toast.error(`Failed to ${currentTask ? "update" : "create"} task`);
+      toast.error(
+        `Failed to ${currentTask ? "update" : "create"} task: ${error.message}`
+      );
     }
   };
 
